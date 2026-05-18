@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.egg-info/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Uploaded audio files — don't commit
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Transcription results
+data/results/*
+!data/results/.gitkeep
+
+# Downloaded Whisper model weights (can be hundreds of MB)
+data/whisper_models/*
+!data/whisper_models/.gitkeep
