@@ -7,6 +7,9 @@ from app.services.audio_service import detect_audio_format, probe_duration_secon
 
 router = APIRouter()
 
+UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 @router.post("/transcribe")
 async def create_transcription(
   file: Annotated[UploadFile, File(description="Audio file to transcribe")],
@@ -21,12 +24,8 @@ async def create_transcription(
     audio_info = detect_audio_format(header)
   except ValueError as e:
     raise HTTPException(status_code=400, detail=str(e))
-  
-  # Create job
-  job_id = str(uuid4())
 
-  # Prepare path
-  UPLOAD_DIR = Path("data/uploads")
+  job_id = str(uuid4())
   ext = audio_info["extension"]
   dest = UPLOAD_DIR / f"{job_id}.{ext}"
 
