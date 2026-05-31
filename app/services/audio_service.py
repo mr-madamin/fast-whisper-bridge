@@ -1,3 +1,6 @@
+import json
+import subprocess
+from pathlib import Path
 from filetype import guess
 
 ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "flac", "ogg", "opus"}
@@ -18,6 +21,32 @@ def detect_audio_format(data) -> dict:
     "extension": kind.extension,
     "mime": kind.mime
   }
+
+def probe_duration_seconds(file_path: Path) -> float:
+  """Return audio duration in seconds, via ffprobe.
+  
+  Raises ValueError if ffprobe fails or returns no duration.
+  """
+  result = subprocess.run(
+    [
+      "ffprobe",
+      "-v", "quiet",            # suppress ffprobe's chatter
+      "-show_format",           # we want the container's format block
+      "-print_format", "json",  # machine-readable output
+      str(file_path),
+    ],
+    capture_output=True,
+    text=True,
+  )
+
+  if result.returncode != 0:
+    raise ValueError(f"ffprobe failed: {result.stderr.strip()}")
+
+  try:
+    data = json.loads(result.stdout)
+    return float(data["format"]["duration"])
+  except (json.JSONDecodeError, KeyError, ValueError) as e:
+    raise ValueError(f"Could not read duration from ffprobe output: {e}")
 
 if __name__ == "__main__":
   from pathlib import Path
