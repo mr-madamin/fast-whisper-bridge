@@ -29,12 +29,18 @@ async def create_transcription(
   ext = audio_info["extension"]
   dest = UPLOAD_DIR / f"{job_id}.{ext}"
 
-  # Write file
+  # Rewind: we consumed the first 261 bytes above, so seek back to 0
+  # before streaming the WHOLE file to disk in 1 MB chunks.
+  # NOTE: open()/write() and the ffprobe subprocess below are BLOCKING
+  # calls inside an async route — fine for small files, but they tie up
+  # the event loop on large uploads. TODO: offload to a threadpool
+  # (asyncio.to_thread / run_in_threadpool) or use aiofiles. Most of
+  # this moves to the worker in Step 3 anyway.
   await file.seek(0)
   with open(dest, "wb") as out:
     while chunk := await file.read(1024 * 1024):
       out.write(chunk)
-  
+
   # Probe duration
   duration = None
   try:
