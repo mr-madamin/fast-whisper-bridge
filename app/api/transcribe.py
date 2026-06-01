@@ -1,9 +1,11 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from app.models.schemas import TranscriptionJob
 from app.services.audio_service import detect_audio_format, probe_duration_seconds
 
 router = APIRouter()
@@ -12,7 +14,7 @@ UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-@router.post("/transcribe")
+@router.post("/transcribe", response_model=TranscriptionJob)
 async def create_transcription(
     file: Annotated[UploadFile, File(description="Audio file to transcribe")],
     model: Annotated[str, Form()] = "base",
@@ -30,6 +32,7 @@ async def create_transcription(
     job_id = str(uuid4())
     ext = audio_info["extension"]
     dest = UPLOAD_DIR / f"{job_id}.{ext}"
+    created_at = datetime.now(timezone.utc)
 
     # Rewind: we consumed the first 261 bytes above, so seek back to 0
     # before streaming the WHOLE file to disk in 1 MB chunks.
@@ -53,13 +56,14 @@ async def create_transcription(
             status_code=400, detail=f"Invalid audio file: {e}"
         ) from None
 
-    return {
-        "job_id": job_id,
-        "status": "queued",
-        "file_size": dest.stat().st_size,
-        "filename": file.filename,
-        "audio_duration_seconds": duration,
-        "model": model,
-        "language": language,
-        "word_timestamps": word_timestamps,
-    }
+    return TranscriptionJob(
+        job_id=job_id,
+        status="queued",
+        file_size=dest.stat().st_size,
+        filename=file.filename,
+        audio_duration_seconds=duration,
+        model=model,
+        language=language,
+        word_timestamps=word_timestamps,
+        created_at=created_at,
+    )
