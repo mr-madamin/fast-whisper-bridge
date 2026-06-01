@@ -25,7 +25,7 @@ async def create_transcription(
     try:
         audio_info = detect_audio_format(header)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from None
 
     job_id = str(uuid4())
     ext = audio_info["extension"]
@@ -49,7 +49,9 @@ async def create_transcription(
         duration = probe_duration_seconds(dest)
     except ValueError as e:
         dest.unlink(missing_ok=True)
-        raise HTTPException(status_code=400, detail=f"Invalid audio file: {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid audio file: {e}"
+        ) from None
 
     return {
         "job_id": job_id,

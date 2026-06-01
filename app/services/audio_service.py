@@ -48,7 +48,7 @@ def probe_duration_seconds(file_path: Path) -> float:
         data = json.loads(result.stdout)
         return float(data["format"]["duration"])
     except (json.JSONDecodeError, KeyError, ValueError) as e:
-        raise ValueError(f"Could not read duration from ffprobe output: {e}")
+        raise ValueError(f"Could not read duration from ffprobe output: {e}") from e
 
 
 if __name__ == "__main__":
