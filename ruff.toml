@@ -1,0 +1,7 @@
+# 4-space indent, ~88 char lines are Ruff/Black defaults — fine to keep.
+line-length = 88
+
+[lint]
+# E,F = pyflakes + pycodestyle (the basics). I = isort (import sorting).
+# UP = pyupgrade (modernizes old syntax). B = flake8-bugbear (real bug patterns).
+select = ["E", "F", "I", "UP", "B"]
