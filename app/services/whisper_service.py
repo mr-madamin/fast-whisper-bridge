@@ -26,12 +26,14 @@ class WhisperService:
         model: str = "base",
         language: str = "auto",
         word_timestamps: bool = True,
+        vad_filter: bool = True,
     ) -> TranscriptionResult:
         current_model = self._get_model(model_name=model)
         segments, info = current_model.transcribe(
             audio_path,
             language=None if language == "auto" else language,
             word_timestamps=word_timestamps,
+            vad_filter=vad_filter,
         )
 
         built_segments = []
