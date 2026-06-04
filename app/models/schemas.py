@@ -13,3 +13,24 @@ class TranscriptionJob(BaseModel):
     language: str
     word_timestamps: bool
     created_at: datetime
+
+
+class Word(BaseModel):
+    start: float
+    end: float
+    word: str
+    probability: float
+
+
+class Segment(BaseModel):
+    start: float
+    end: float
+    text: str
+    words: list[Word]
+
+
+class TranscriptionResult(BaseModel):
+    language: str
+    language_probability: float
+    duration: float
+    segments: list[Segment]
