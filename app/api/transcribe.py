@@ -5,8 +5,8 @@ from uuid import uuid4
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.config import settings
-from app.core.queue import queue, save_job
-from app.models.schemas import TranscriptionJob
+from app.core.queue import get_job, queue, save_job
+from app.models.schemas import JobStatus, TranscriptionJob
 from app.services.audio_service import detect_audio_format, probe_duration_seconds
 from app.workers.transcribe_worker import run_transcription
 
@@ -87,4 +87,31 @@ async def create_transcription(
         language=language,
         word_timestamps=word_timestamps,
         created_at=created_at,
+    )
+
+
+@router.get("/transcribe/{job_id}", response_model=JobStatus)
+async def get_transcription_status(job_id: str):
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Redis hashes store everything as strings; JobStatus coerces types.
+    result_url = None
+    if job.get("status") == "completed":
+        result_url = f"/transcribe/{job_id}/result"
+
+    return JobStatus(
+        job_id=job_id,
+        status=job["status"],
+        progress=job.get("progress"),
+        model=job.get("model"),
+        language=job.get("language"),
+        filename=job.get("filename"),
+        detected_language=job.get("detected_language"),
+        created_at=job.get("created_at"),
+        started_at=job.get("started_at"),
+        finished_at=job.get("finished_at"),
+        error=job.get("error"),
+        result_url=result_url,
     )
