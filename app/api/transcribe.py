@@ -1,4 +1,6 @@
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
@@ -6,7 +8,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.core.queue import get_job, queue, save_job
-from app.models.schemas import JobStatus, TranscriptionJob
+from app.models.schemas import JobStatus, TranscriptionJob, TranscriptionResult
 from app.services.audio_service import detect_audio_format, probe_duration_seconds
 from app.workers.transcribe_worker import run_transcription
 
@@ -115,3 +117,28 @@ async def get_transcription_status(job_id: str):
         error=job.get("error"),
         result_url=result_url,
     )
+
+
+@router.get("/transcribe/{job_id}/result", response_model=TranscriptionResult)
+async def get_transcription_result(job_id: str):
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    status = job.get("status")
+    if status != "completed":
+        # 409 Conflict: the resource exists but isn't ready in this state.
+        raise HTTPException(
+            status_code=409,
+            detail=f"Result not available; job status is '{status}'",
+        )
+
+    result_path = Path(job.get("result_path", ""))
+    if not result_path.is_file():
+        raise HTTPException(
+            status_code=500, detail="Job completed but result file is missing"
+        )
+
+    with open(result_path) as f:
+        data = json.load(f)
+    return TranscriptionResult(**data)
